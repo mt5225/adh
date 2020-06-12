@@ -149,4 +149,5 @@ models/
 
 # misc
 .vscode
+.vscode/*
 .DS_Store
