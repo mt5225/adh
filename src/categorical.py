@@ -49,11 +49,19 @@ class CategoricalFeatures:
             self.df = self.df.drop(col, axis=1)
         return self.df
 
+    def _ohe_encoding(self):
+        ohe = preprocessing.OneHotEncoder()
+        ohe.fit(self.df[self.features].values)
+        self.ohe = ohe
+        return ohe.transform(self.df[self.features].values)
+
     def fit_transform(self):
         if self.encode_type == 'label':
             return self._lable_encoding()
         elif self.encode_type == 'binary':
             return self._label_binarization()
+        elif self.encode_type == 'ohe':
+            return self._ohe_encoding()
         else:
             raise Exception('unknown encoding type')
 
@@ -72,13 +80,16 @@ class CategoricalFeatures:
                     df[new_col_name] = val[:, j]
                 df = df.drop(col, axis=1)
             return df
+        elif self.encode_type == 'ohe':
+            return self.ohe.transform(df[self.features])
         else:
             raise Exception('unknown encoding type')
 
 
 if __name__ == '__main__':
     # cat = 'binary'
-    cat = 'label'
+    # cat = 'label'
+    cat = 'ohe'
     if cat == 'binary':
         train_df = pd.read_csv('./input/train_cat_II.csv').head(500)
         features = [
@@ -109,8 +120,30 @@ if __name__ == '__main__':
             drop=True)
         test_df = test_df.drop('target', axis=1)
         test_df_encoded = test_df_encoded.drop('target', axis=1)
+    elif cat == 'ohe':
+        train_df = pd.read_csv('./input/train_cat_II.csv')
+        train_len = len(train_df)
+        test_df = pd.read_csv('./input/train_cat_II_test.csv')
+        test_df['target'] = -1
+        full_df = pd.concat([train_df, test_df])
+        temp_df = full_df.copy(deep=True)
+        features = [
+            col for col in full_df.columns if col not in ['id', 'target']]
+        cat_encode = CategoricalFeatures(
+            temp_df, features, cat, fill_na=True)
+        full_df_encoded = cat_encode.fit_transform()
+        X_encoded = full_df_encoded[:train_len, :]
+        X_test_encoded = full_df_encoded[train_len:, :]
+        # run a predit
+        from sklearn import linear_model
+        clf = linear_model.LogisticRegression()
+        clf.fit(X_encoded, train_df['target'].values)
+        preds = clf.predict_proba(X_test_encoded)[:, 1]
+        sample_df = pd.read_csv('./input/cat_sample_submission_II.csv')
+        sample_df.loc[:, 'target'] = preds
+        sample_df.to_csv('./output/submission_cat_II.csv', index=False)
 
-    print(train_df)
-    print(train_df_encoded)
-    print(test_df)
-    print(test_df_encoded)
+    # print(train_df)
+    # print(train_df_encoded.shape)
+    # print(test_df)
+    # print(test_df_encoded.shape)
