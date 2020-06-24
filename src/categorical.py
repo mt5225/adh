@@ -8,7 +8,7 @@ class CategoricalFeatures:
         df: pandas dataframe
         categorical_features (list(string)): list of features
         fill_na(boolean): if fill NaN
-        encode_type: one of label, ohe (one hot value)
+        encode_type: label, binary, ohe (one hot value)
         """
         self.features = categorical_features
         self.encode_type = encode_type
